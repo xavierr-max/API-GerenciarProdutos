@@ -7,6 +7,8 @@ namespace GerenciarProdutos.Data;
 public class ProdutoDbContext : DbContext
 {
     public DbSet<Produto> Produtos { get; set; }
+    public DbSet<User> Users { get; set; }
+    public DbSet<Role> Roles { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseSqlServer(
@@ -15,5 +17,6 @@ public class ProdutoDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfiguration(new ProdutoMap());
+        modelBuilder.ApplyConfiguration(new UserMap());
     }
 }
