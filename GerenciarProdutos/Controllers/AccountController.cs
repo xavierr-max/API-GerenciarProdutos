@@ -16,7 +16,8 @@ public class AccountController : ControllerBase
     [HttpPost("conta")]
     public async Task<IActionResult> Post( //task para realizar o cadastro pelo nome e email e fornece uma senhahash
         [FromBody] RegisterViewModel model, //recebe as informacoes da requisicao e envia para a classe RegisterViewModel
-        [FromServices] ProdutoDbContext context) //acesso ao banco de dados
+        [FromServices] ProdutoDbContext context, //acesso ao banco de dados
+        [FromServices] EmailService emailService)
     {
         if (!ModelState.IsValid)
             return BadRequest(new ResultViewModel<string>(ModelState.GetErrors())); 
@@ -36,7 +37,11 @@ public class AccountController : ControllerBase
         {
             await context.Users.AddAsync(user); //tenta enviar as info na tabela Users
             await context.SaveChangesAsync(); //salva as alteracoes no banco
-            return Ok(new ResultViewModel<dynamic>(new {user = user.Email, password})); //retorna um status 200 para tela e os atributos de user
+
+            emailService.Send(user.Name, user.Email, "Bem vindo ao blog!", $"Sua senha é {password}");
+            
+            return Ok(new ResultViewModel<dynamic>(new 
+                {user = user.Email, password})); //retorna um status 200 para tela e os atributos de user
         }
         catch (DbUpdateException)//caso ocorra algum erro...
         {
