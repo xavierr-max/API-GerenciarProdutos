@@ -1,9 +1,12 @@
-﻿using Blog.ViewModels.Accounts;
+﻿using System.Text.RegularExpressions;
+using Blog.ViewModels.Accounts;
 using GerenciarProdutos.Data;
 using GerenciarProdutos.Extensions;
 using GerenciarProdutos.Models;
 using GerenciarProdutos.Services;
 using GerenciarProdutos.ViewModels;
+using GerenciarProdutos.ViewModels.Accounts;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SecureIdentity.Password;
@@ -79,6 +82,49 @@ public class AccountController : ControllerBase
         {
             return StatusCode(500, new ResultViewModel<string>("05X04 - Falha interna"));
         }
+    }
+
+    [Authorize]
+    [HttpPost("conta/upload-image")]
+    public async Task<IActionResult> UploadImage(
+        [FromBody] UploadImageViewModel model,
+        [FromServices] ProdutoDbContext context)
+    {
+        var filename = $"{Guid.NewGuid().ToString()}.jpg"; //gera um guid para nao repetir o nome do arquivo onde vai ser salvo
+        var data = new Regex(@"^data:image\/[a-z]+;base64,").Replace(model.Base64Image, ""); 
+        //método que remove e poe a imagem 
+        var bytes = Convert.FromBase64String(data);
+
+        try
+        {
+            await System.IO.File.WriteAllBytesAsync($"wwwroot/images/{filename}", bytes); 
+            //passa o local de save da imagem e passa qual é a imagem
+        }
+        catch (Exception e)
+        {
+            return BadRequest(new ResultViewModel<string>("05X04 - Falha interna no servidor"));
+        }
+
+        var user = await context
+            .Users
+            .FirstOrDefaultAsync(x => x.Email == User.Identity.Name);
+        
+        if(user == null)
+            return NotFound(new ResultViewModel<Produto>("Usuário não encontrado"));
+
+        user.Image = $"https://localhost:0000/images/{filename}";
+        try
+        {
+            context.Users.Update(user);
+            await context.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            return StatusCode(500, new ResultViewModel<string>("05X04 - Falha interna no servidor"));
+        }
+
+        return Ok(new ResultViewModel<string>("Imagem alterada com sucesso!", null));
+        
     }
     
 }
